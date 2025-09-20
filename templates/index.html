@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- Hero Section -->
+<div class="p-5 mb-4 bg-white rounded-3 shadow-sm">
+  <div class="container-fluid py-5 text-center">
+    <h1 class="display-5 fw-bold text-primary">Welcome to the Student Feedback System</h1>
+    <p class="col-lg-8 mx-auto fs-5 text-muted mt-3">
+      A simple and secure way for students to share feedback on courses and faculty, 
+      and for admins to view and analyze responses.
+    </p>
+    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-4">
+      <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg px-4 gap-3">Get Started</a>
+      <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-lg px-4">Login</a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-sm p-4">
+  <h2 class="mb-3">Submit Feedback</h2>
+  <form method="post">
+    <div class="mb-3">
+      <label class="form-label">Course</label>
+      <select name="course_id" class="form-select" required>
+        {% for c in courses %}
+          <option value="{{ c.course_id }}">{{ c.course_name }} ({{ c.faculty_name }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Rating</label>
+      <select name="rating" class="form-select" required>
+        <option value="1">1 - Very Poor</option>
+        <option value="2">2 - Poor</option>
+        <option value="3">3 - Fair</option>
+        <option value="4">4 - Good</option>
+        <option value="5">5 - Excellent</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Comments</label>
+      <textarea name="comments" class="form-control" rows="3"></textarea>
+    </div>
+    <button type="submit" class="btn btn-success">Submit</button>
+  </form>
+</div>
+{% endblock %}
