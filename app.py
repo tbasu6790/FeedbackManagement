@@ -51,6 +51,7 @@ def ensure_db_connection():
 def index():
     return render_template("index.html")
 
+
 # ---------- Student Registration ----------
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -59,9 +60,8 @@ def register():
         email = request.form.get("email")
         password = request.form.get("password")
         try:
-            # hash the password before storing
-            hashed_pw = generate_password_hash(password)
-            sid = student_model.register(name, email, hashed_pw)
+            # Use model register method (hashing done inside)
+            sid = student_model.register(name, email, password)
             flash("Registration successful. Please log in.", "success")
             return redirect(url_for('login'))
         except Exception as e:
@@ -78,7 +78,10 @@ def login():
         password = request.form.get("password")
         try:
             user = student_model.get_by_email(email)
-            if not user or not check_password_hash(user['password'], password):
+            if not user:
+                raise AuthenticationError("Invalid email or password.")
+            # Verify hashed password
+            if not check_password_hash(user['password'], password):
                 raise AuthenticationError("Invalid email or password.")
 
             session['student'] = {

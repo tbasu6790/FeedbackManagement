@@ -33,33 +33,30 @@ class Student:
         finally:
             cursor.close()
 
-    def login(self, email: str, password: str) -> dict:
-        """Validate student login with hashed password."""
+    def get_by_email(self, email: str) -> dict | None:
+        """Fetch student row by email."""
         cursor = self.db.get_cursor()
         try:
             sql = "SELECT * FROM students WHERE email = %s"
             cursor.execute(sql, (email,))
-            row = cursor.fetchone()
-            if row and check_password_hash(row["password"], password):
-                self.logger.write_log(
-                    f"Login success for student_id={row['student_id']}"
-                )
-                return row
-            else:
-                self.logger.write_log(
-                    f"Login failed for email={email}", level="warning"
-                )
-                raise AuthenticationError("Invalid student credentials")
+            return cursor.fetchone()
         finally:
             cursor.close()
 
-    def submit_feedback(
-        self, student_id: int, course_id: int, rating: int, comments: str
-    ) -> int:
+    def login(self, email: str, password: str) -> dict:
+        """Validate student login with hashed password."""
+        student = self.get_by_email(email)
+        if student and check_password_hash(student["password"], password):
+            self.logger.write_log(f"Login success for student_id={student['student_id']}")
+            return student
+        else:
+            self.logger.write_log(f"Login failed for email={email}", level="warning")
+            raise AuthenticationError("Invalid student credentials")
+
+    def submit_feedback(self, student_id: int, course_id: int, rating: int, comments: str) -> int:
         """Submit feedback, ensuring no duplicate submission per course/student."""
         cursor = self.db.get_cursor()
         try:
-            # check duplicate
             sql_check = "SELECT * FROM feedback WHERE student_id = %s AND course_id = %s"
             cursor.execute(sql_check, (student_id, course_id))
             if cursor.fetchone():
@@ -85,7 +82,6 @@ class Student:
             raise e
         finally:
             cursor.close()
-
 
 class Admin:
     def __init__(self, db: DatabaseConnection):
