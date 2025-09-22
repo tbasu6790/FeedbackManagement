@@ -4,6 +4,7 @@ from logger_utils import Logger
 from exceptions import DuplicateFeedbackError, AuthenticationError
 from werkzeug.security import generate_password_hash, check_password_hash
 from mysql.connector import Error
+from werkzeug.security import check_password_hash
 
 class Student:
     def __init__(self, db: DatabaseConnection):
