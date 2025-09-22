@@ -1,11 +1,11 @@
 # app.py
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, abort
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
 from dbconnection import DatabaseConnection
 from models import Student, Admin
 from logger_utils import Logger
 from exceptions import DatabaseConnectionError, DuplicateFeedbackError, AuthenticationError, FileHandlingError
 from config import SECRET_KEY, LOG_FILE
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 import os
 
 app = Flask(__name__)
@@ -40,14 +40,12 @@ def admin_required(fn):
         return fn(*args, **kwargs)
     return wrapper
 
-# @app.before_app_first_request #type:ignore
 def ensure_db_connection():
     try:
         db.connect()
     except DatabaseConnectionError as e:
         logger.write_log(f"App startup DB connection failed: {e}", level="error")
         print("Database connection issue. Check app.log for details.")
-
 
 @app.route('/')
 def index():
@@ -61,11 +59,12 @@ def register():
         email = request.form.get("email")
         password = request.form.get("password")
         try:
-            sid = student_model.register(name, email, password)
+            # hash the password before storing
+            hashed_pw = generate_password_hash(password)
+            sid = student_model.register(name, email, hashed_pw)
             flash("Registration successful. Please log in.", "success")
             return redirect(url_for('login'))
         except Exception as e:
-            # If unique constraint violation, mysql.connector raises IntegrityError
             logger.write_log(f"Registration exception for {email}: {e}", level="error")
             flash(f"Registration failed: {str(e)}", "danger")
             return render_template("register.html", name=name, email=email)
@@ -78,7 +77,10 @@ def login():
         email = request.form.get("email")
         password = request.form.get("password")
         try:
-            user = student_model.login(email, password)
+            user = student_model.get_by_email(email)
+            if not user or not check_password_hash(user['password'], password):
+                raise AuthenticationError("Invalid email or password.")
+
             session['student'] = {
                 "student_id": user['student_id'],
                 "name": user['name'],
@@ -139,9 +141,13 @@ def admin_login():
         username = request.form.get("username")
         password = request.form.get("password")
         try:
-            admin = admin_model.login(username, password)
+            # Fetch admin by username (plain-text password comparison)
+            admin = admin_model.get_by_username(username)
+            if not admin or admin['password'] != password:
+                raise AuthenticationError("Invalid username or password.")
+
             session['admin'] = {
-                "admin_id": admin['admin_id'],
+                "admin_id": admin['id'],
                 "username": admin['username']
             }
             flash("Admin logged in.", "success")
@@ -150,6 +156,7 @@ def admin_login():
             flash(str(e), "danger")
             return render_template("admin_login.html", username=username)
         except Exception as e:
+            print("erorr",e)
             logger.write_log(f"Admin login error for {username}: {e}", level="error")
             flash("Admin login error.", "danger")
             return render_template("admin_login.html", username=username)
@@ -167,7 +174,7 @@ def admin_view_feedback():
         flash("Failed to load feedback.", "danger")
         return render_template("admin_view_feedback.html", rows=[])
 
-# Download logs (admin only)
+# ---------- Download logs (admin only) ----------
 @app.route('/admin/download_logs')
 @admin_required
 def download_logs():
@@ -185,6 +192,5 @@ def download_logs():
         return redirect(url_for("admin_view_feedback"))
 
 if __name__ == "__main__":
-    # ensure log file exists
     open(LOG_FILE, 'a').close()
     app.run(debug=True)
